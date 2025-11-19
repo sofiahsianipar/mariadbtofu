@@ -1,19 +1,16 @@
-# Persistent Volume Claim (PVC)
+# Persistent Volume Claim (PVC) - Pastikan ini hanya ada satu kali di seluruh file .tf Anda
 resource "kubernetes_persistent_volume_claim" "mariadb" {
   metadata {
     name = "mariadb-pvc"
   }
-
   spec {
     access_modes = ["ReadWriteOnce"]
-
     resources {
       requests = {
-        storage = "1Gi"
+        storage = "5Gi" # Mengklaim PV 5Gi Anda
       }
     }
-
-    storage_class_name = "standard" # Pastikan storage class ini tersedia di Minikube
+    storage_class_name = "standard" # Pastikan StorageClass ini tersedia
   }
 }
 
@@ -28,29 +25,26 @@ resource "kubernetes_deployment" "mariadb" {
 
   spec {
     replicas = 1
-
     selector {
       match_labels = {
         app = "mariadb"
       }
     }
-
     template {
       metadata {
         labels = {
           app = "mariadb"
         }
       }
-
       spec {
         container {
           name  = "mariadb"
-          image = "mariadb:latest" # Gunakan tag image yang spesifik
-
+          image = "mariadb:latest" 
           port {
             container_port = 3306
           }
-
+          
+          # 🛑 KOREKSI SINTAKSIS PENTING PADA BAGIAN ENV (TANPA {})
           env {
             name = "MARIADB_ROOT_PASSWORD"
             value_from {
@@ -60,18 +54,18 @@ resource "kubernetes_deployment" "mariadb" {
               }
             }
           }
-
+          # Contoh penambahan environment variable yang benar (Tanpa tanda kurung () atau {})
           env {
             name  = "MARIADB_DATABASE"
-            value = "lukas" # atau ganti dengan "ariel" sesuai kebutuhanmu
+            value = "sofiah" 
           }
+          # --------------------------------------------------------
 
           volume_mount {
-            name       = "mariadb-storage"
+            name      = "mariadb-storage"
             mount_path = "/var/lib/mysql"
           }
         }
-
         volume {
           name = "mariadb-storage"
           persistent_volume_claim {
@@ -88,19 +82,15 @@ resource "kubernetes_service" "mariadb" {
   metadata {
     name = "mariadb-service"
   }
-
   spec {
     selector = {
       app = "mariadb"
     }
-
     port {
       port        = 3306
       target_port = 3306
       node_port   = 30036 # Tentukan NodePort untuk akses eksternal
     }
-
     type = "NodePort"
   }
 }
-
